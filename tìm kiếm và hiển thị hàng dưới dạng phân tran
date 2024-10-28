@@ -1,0 +1,42 @@
+﻿/*
+	viết thủ tục :
+	proc_Product_Select
+		@Page int,
+		@PageSize int,
+		@SearchValue nvarchar (255)=N''
+		@MaxPrice money =0
+		@MinPrice money =0
+		@RowCount int output
+có chức năng tìm kiếm và hiển thị hàng dưới dạng phân trang , trong đó
+@SearchValue tên mặt hàng dưới dạng phân trang , trong đó:
+@MinPrie là @MaxPrice : giá của mặt hàng cần lấy
+(lớn hơn hoặc bằng minprice và nhỏ hơn hoặc bằng maxprice)
+trong hai tham số này , nếu tham số nào bằng 0 thì bỏ qua sự hạn chế của tham số đó
+*/
+if exists (select * from sys.objects where name ='proc_Product_Select')
+drop procedure proc_Product_Select
+go
+create procedure proc_Product_Select
+@Page int,
+@PageSize int,
+@SearchValue nvarchar (255)=N'',
+@MaxPrice money =0,
+@MinPrice money =0,
+@RowCount int output
+as
+begin
+	set nocount on;
+	select *,
+	ROW_NUMBER () over (order by ProductName) as RowNumber
+	from Products
+	where @SearchValue =N'' or ProductName like @SearchValue
+		and (@MinPrice =0 or Price >=@MinPrice)
+		and (@MaxPrice =0 or Price <=@MaxPrice)
+	set @RowCount =@@ROWCOUNT
+	select *
+	from #TempProduct
+	where RowNumber between @PageSize *(@Page-1) +1 and @Page *@PageSize
+	order by RowNumber
+end
+go
+--test case
