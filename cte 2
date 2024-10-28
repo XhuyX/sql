@@ -1,0 +1,66 @@
+﻿/*
+viết thủ tục proc_Product_Insert có chức năng bổ sung thêm một mặt hàng mới vào bảng Products
+yêu cầu : 
+1: Tên mặt hàng không được trùng
+2: sử dụng tham số đầu ra theo quy ước:
+	2.1: Tham số nhận giá trị là ID cua mặt hàng được bổ sung nếu bổ sung thành công
+	2.2: Tham số nhận giá trị âm trong các trường hợp dữ liệu đầu vào không hợp lệ
+*/
+if exists (select * from sys.objects where name = 'proc_Product_Insert')
+	drop procedure proc_Product_Insert
+go
+
+create procedure proc_Product_Insert
+@ProductName nvarchar (255),
+@SupplierId int,
+@CategoryId int,
+@Unit nvarchar (255),
+@Price money,
+@ProductId int output
+as
+begin
+	set nocount on;
+	if @ProductName =N'' or @ProductName is null
+		begin
+			set @ProductId =-1
+			return
+		end
+	if exists (select * from Products where ProductName=@ProductName)
+		begin
+			set @ProductId=-2
+			return
+		end
+	if not exists (select * from Categories where CategoryId = @CategoryId)
+		begin
+			set @ProductId = -3
+			return 
+		end
+	if not exists (select * from Suppliers where SupplierId = @SupplierId)
+		begin
+			set @Price =-4
+			return
+		end
+	if @Price <0
+	begin
+		set @SupplierId =-5
+		return
+	end
+	insert into Products (ProductName,SupplierId,CategoryId,Unit,Price)
+	values (@ProductName,@SupplierId,@CategoryId,@Unit,@Price)
+	set @ProductId = @@IDENTITY
+end
+go
+/* test case */
+declare @ProductId int;
+
+execute proc_Product_Insert
+	@ProductName =N'Nước ngọt Monster',
+	@SupplierId =2,
+	@CategoryId =2,
+	@Unit = 'Lon',
+	@Price = 23000,
+	@ProductId = @ProductId output;
+if (@ProductId >0)
+select * from Products where @ProductId = ProductId
+else
+select @ProductId as N'mã lỗi'
