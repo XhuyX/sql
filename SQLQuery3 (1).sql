@@ -1,0 +1,198 @@
+﻿--1
+/*declare  @tbYear table
+(
+[year] int primary key
+)
+declare @fromyear int =2010, @toyear int = 2020;
+declare @year int = @fromyear
+while (@year<@toyear)
+	begin
+	insert into @tbYear values (@year)
+	set @year +=1
+	end
+select t1.year, ISNULL(t2.Revenue,0) as Revenue
+from @tbYear as t1
+left join 
+	(
+	select YEAR(o.OrderDate) AS [year],
+	sum (od.Quantity * od.SalePrice) as [Revenue]
+	from Orders as o
+	join OrderDetails as od on o.OrderId=od.OrderId
+	where year(o.OrderDate) between @fromyear and @toyear
+	group by year(o.OrderDate)
+	) as t2 on t2.year= t1.year
+	*/
+--2
+/*
+declare @tbmonth table ([month] int primary key)
+declare @year int = 2017 , @month int =1
+while (@month <=12)
+	begin
+		insert into @tbmonth values (@month) 
+		set @month +=1
+	end
+select t1.month, ISNULL(t2.Revenue,0) as Revenue
+from @tbmonth as t1
+left join   (
+				select month(o.OrderDate) as [month],
+				sum (od.Quantity * od.SalePrice) as [Revenue]
+				from Orders as o
+				join OrderDetails as od on od.OrderId= o.OrderId
+				where year(o.OrderDate)= @year
+				group by MONTH(o.OrderDate)
+			) as t2 on t1.month=t2.month
+*/
+
+--3 
+
+declare @fromdate date, @todate date
+set @fromdate = DATEFROMPARTS(2017, 7, 1)
+set @todate = DATEFROMPARTS(2017, 12, 1)
+declare @date date = @fromdate
+declare @tbdate table (
+    [date] date primary key
+)
+
+while (@fromdate <= @todate) 
+begin
+    insert into @tbdate values (@fromdate)
+    set @fromdate = DATEADD(day, 1, @fromdate)
+end
+
+select t1.date, ISNULL(t2.Revenue, 0) as Revenue
+from @tbdate as t1
+left join 
+(
+    select cast(o.OrderDate as date) as [date], sum(od.Quantity * od.SalePrice) as [Revenue]
+    from Orders as o
+    join OrderDetails as od on o.OrderId = od.OrderId
+    where o.OrderDate between @date and @fromdate
+	group by cast(o.OrderDate as date)
+) as t2 on t1.date = t2.date
+*/
+--4
+/*
+declare  @tbYear table
+(
+[year] int primary key
+)
+declare @fromyear int =2010, @toyear int = 2020;
+declare @year int = @fromyear
+while (@year<@toyear)
+	begin
+	insert into @tbYear values (@year)
+	set @year +=1
+	end
+
+select t.*, sum (t.DoanhThu) over 
+	(
+	 order by year
+	 rows between unbounded preceding and current row
+	) as DoanhThuLuyKe,
+	ISNULL (t.DoanhThu - lag (t.DoanhThu) over (order by year),0) as MucTangGiam
+from (
+	select t1.year, ISNULL(t2.Revenue,0) as DoanhThu
+	from @tbYear as t1
+	left join 
+		(
+		select YEAR(o.OrderDate) AS [year],
+		sum (od.Quantity * od.SalePrice) as [Revenue]
+		from Orders as o
+		join OrderDetails as od on o.OrderId=od.OrderId
+		where year(o.OrderDate) between @fromyear and @toyear
+		group by year(o.OrderDate)
+		) as t2 on t2.year= t1.year
+		) as t
+*/
+--5
+declare @tbmonth table ([month] int primary key)
+declare @year int = 2017 , @month int =1
+while (@month <=12)
+	begin
+		insert into @tbmonth values (@month) 
+		set @month +=1
+	end
+select t.*, sum (t.Revenue) over 
+(
+order by month
+rows between unbounded preceding and current row
+) as DoanhThuLuyKe,
+ISNULL (t.Revenue - lag(t.Revenue) over (Order by month) ,0) as MucTangGiam
+from (
+select t1.month, ISNULL(t2.Revenue,0) as Revenue
+from @tbmonth as t1
+left join   (
+				select month(o.OrderDate) as [month],
+				sum (od.Quantity * od.SalePrice) as [Revenue]
+				from Orders as o
+				join OrderDetails as od on od.OrderId= o.OrderId
+				where year(o.OrderDate)= @year
+				group by MONTH(o.OrderDate)
+			) as t2 on t1.month=t2.month ) as t
+--6
+declare @fromdate date, @todate date
+set @fromdate = DATEFROMPARTS(2017, 7, 1)
+set @todate = DATEFROMPARTS(2017, 12, 31)
+declare @date date = @fromdate
+declare @tbdate table (
+    [date] date primary key
+)
+
+while (@fromdate <= @todate) 
+begin
+    insert into @tbdate values (@fromdate)
+    set @fromdate = DATEADD(day, 1, @fromdate)
+end
+select t.*, sum (t.Revenue) over 
+( order by date
+rows between unbounded preceding and current row
+) as DoanhThuLuyKe,
+isnull(t.Revenue - lag (t.Revenue) over (order by date),0) as MucTangGiam
+from (
+select t1.date, ISNULL(t2.Revenue, 0) as Revenue
+from @tbdate as t1
+left join 
+(
+    select cast(o.OrderDate as date) as [date], sum(od.Quantity * od.SalePrice) as [Revenue]
+    from Orders as o
+    join OrderDetails as od on o.OrderId = od.OrderId
+    where o.OrderDate between @date and @fromdate
+    group by cast(o.OrderDate as date)
+) as t2 on t1.date = t2.date) as t
+
+--7
+
+declare @fromyear int =2010, @toyear int = 2020;
+declare @year int = @fromyear
+
+declare  @tbYear table
+(
+[year] int primary key
+)
+while (@year<@toyear)
+	begin
+	insert into @tbYear values (@year)
+	set @year +=1
+	end
+select YEAR(OrderDate) AS [yearr] ,
+	SUM(CASE WHEN MONTH(OrderDate) = 1 THEN od.Quantity*od.SalePrice ELSE 0 END) AS Thang1,
+       SUM(CASE WHEN MONTH(OrderDate) = 2 THEN od.Quantity*od.SalePrice ELSE 0 END) AS Thang2,
+       SUM(CASE WHEN MONTH(OrderDate) = 3 THEN od.Quantity*od.SalePrice ELSE 0 END) AS Thang3,
+       SUM(CASE WHEN MONTH(OrderDate) = 4 THEN od.Quantity*od.SalePrice ELSE 0 END) AS Thang4,
+       SUM(CASE WHEN MONTH(OrderDate) = 5 THEN od.Quantity*od.SalePrice ELSE 0 END) AS Thang5,
+       SUM(CASE WHEN MONTH(OrderDate) = 6 THEN od.Quantity*od.SalePrice ELSE 0 END) AS Thang6,
+       SUM(CASE WHEN MONTH(OrderDate) = 7 THEN od.Quantity*od.SalePrice ELSE 0 END) AS Thang7,
+       SUM(CASE WHEN MONTH(OrderDate) = 8 THEN od.Quantity*od.SalePrice ELSE 0 END) AS Thang8,
+       SUM(CASE WHEN MONTH(OrderDate) = 9 THEN od.Quantity*od.SalePrice ELSE 0 END) AS Thang9,
+       SUM(CASE WHEN MONTH(OrderDate) = 10 THEN od.Quantity*od.SalePrice ELSE 0 END) AS Thang10,
+       SUM(CASE WHEN MONTH(OrderDate) = 11 THEN od.Quantity*od.SalePrice ELSE 0 END) AS Thang11,
+       SUM(CASE WHEN MONTH(OrderDate) = 12 THEN od.Quantity*od.SalePrice ELSE 0 END) AS Thang12,
+	   sum (od.Quantity*od.SalePrice) as Tong
+from Orders as o 
+join OrderDetails as od on o.OrderId = od.OrderId
+
+where year(o.OrderDate) between @fromyear and @toyear
+GROUP BY  grouping sets ( year(o.OrderDate),() )
+/*
+thống kê đa chiều : grouping by sets 
+*/
