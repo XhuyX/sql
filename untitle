@@ -1,0 +1,73 @@
+declare  @tbYear table
+
+
+(
+
+
+[year] int primary key
+
+
+)
+
+
+declare
+@fromyear int =2010, @toyear int = 2020;
+
+
+declare
+@year int =
+@fromyear
+
+
+while (@year<@toyear)
+
+
+       begin
+
+
+       insert into @tbYear values (@year)
+
+
+       set @year
++=1
+
+
+       end
+
+
+select t1.year, ISNULL(t2.Revenue,0) as Revenue
+
+
+from
+@tbYear as t1
+
+
+left join
+
+
+       (
+
+
+       select YEAR(o.OrderDate) AS [year],
+
+
+       sum (od.Quantity * od.SalePrice) as [Revenue]
+
+
+       from
+Orders as o
+
+
+       join
+OrderDetails as od on
+o.OrderId=od.OrderId
+
+
+       where year(o.OrderDate) between @fromyear and
+@toyear
+
+
+       group by year(o.OrderDate)
+
+
+       ) as t2 on t2.year= t1.year
