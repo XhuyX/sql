@@ -1,0 +1,42 @@
+if exists (select * from sys.objects where name = 'proc_Customer_Select')
+    drop procedure proc_Customer_Select;
+go
+create proc proc_Customer_Select
+        @Page int,
+        @PageSize int,
+        @SearchValue nvarchar(255),
+        @RowCount int output,
+        @PageCount int output
+as
+begin
+    set nocount on;
+
+    if(@Page <1) or (@Page is null) set @Page = 1
+    if(@PageSize < 1) or (@PageSize is null) set @PageSize = 20
+    if(@SearchValue = N'') set @SearchValue = '%' + @SearchValue + '%' --CONCAT(...,...,...)
+
+    select @RowCount = count(*)
+    from Customers
+    where (@SearchValue = N'') or (CustomerName like @SearchValue)
+
+    set @PageCount = @RowCount/@PageSize
+    if(@RowCount % @PageSize > 0)
+        set @PageCount +=1
+
+    select * from(
+    select *, ROW_NUMBER() over(order by CustomerName) as RowNumber
+    from Customers
+    where (@SearchValue = N'') or (CustomerName like @SearchValue)
+    ) as t
+    where t.RowNumber between @PageSize * (@Page -1) + 1 and @Page * @PageSize
+    order by t.RowNumber;
+end
+
+declare @a int, @b int;
+exec proc_Customer_Select
+        @Page = 1,
+        @PageSize = 20,
+        @SearchValue = N'',
+        @RowCount = @a output,
+        @PageCount = @b output
+select @a as [RowCount], @b as [PageCount]
