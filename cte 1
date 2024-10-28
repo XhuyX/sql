@@ -1,0 +1,61 @@
+/*
+viết thủ tục procedure customer insert
+bổ sung một khách hàng mới cho bảng customer
+với yêu cầu sau:
+1: tên khách hàng, tên giao dịch không được để trống
+2: các thông tin còn lại của khách hàng nếu đầu vào là NULL thì thay bằng chuỗi rỗng
+3: thủ tục trả về giá trị  (tham số đầu ra) theo quy ước
+    -1: nếu tên khách hàng không hợp lệ
+    -2: nếu tên giao dịch không hợp lệ
+    Trường hợp bổ sung thành công, tham số đầu ra cho biết id của khách hàng vừa bổ sung
+*/
+if exists(select * from sys.objects  where name = 'proc_Customer_Insert')
+    drop procedure proc_Customer_Insert
+go
+
+create procedure proc_Customer_Insert
+@CustomerName nvarchar(255) ,
+@ContactName nvarchar(255) ,
+@Address nvarchar(255),
+@City nvarchar(255),
+@PostalCode nvarchar(255),
+@Country nvarchar(255),
+@CustomerId int output
+as
+begin
+    set nocount on
+    if @CustomerName =N'' or @CustomerName is null
+        begin
+            set @CustomerId =-1
+            return;
+        end
+    if @ContactName =N'' or @ContactName is null
+        begin
+            set @CustomerId =-2
+            return;
+        end
+    if @Address is null set @Address=N'';
+    if @City is null set @City =N'';
+    if @PostalCode is null set @PostalCode=N'';
+    if @Country is null set @Country =N'';
+
+    insert into Customers (CustomerName,ContactName,Address,City,PostalCode,Country)
+    values (@CustomerName,@ContactName,@Address,@City,@PostalCode,@Country)
+    --set @CustomerId = @@IDENTITY
+    set @CustomerId = SCOPE_IDENTITY()
+end
+go
+/*
+test case
+*/
+declare @CustomerId int
+execute proc_Customer_Insert
+        @CustomerName = N'Huỳnh Huy',
+        @ContactName= N'soccer',
+        @Address= N'77 Nguyễn Huệ',
+        @City =N'Huế',
+        @PostalCode='6524',
+        @Country = N'Việt Nam',
+        @CustomerId =@CustomerId output
+
+select * from Customers
