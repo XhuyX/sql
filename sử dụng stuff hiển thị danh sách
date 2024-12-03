@@ -1,0 +1,25 @@
+SELECT ROW_NUMBER() OVER (ORDER BY s.MaSach) AS STT,
+       s.MaSach,
+       s.TieuDe,
+	   s.NamXuatBan,
+       nxb.TenNhaXuatBan,
+       STUFF(
+           (SELECT ', ' + tg.HoTen + (case when tgcs.VaiTro is not null then ' ' + tgcs.VaiTro else '' end)
+            FROM TacGia tg
+            full JOIN TacGiaCuaSach tgcs ON tg.MaTacGia = tgcs.MaTacGia 
+            WHERE tgcs.MaSach = s.MaSach
+            FOR XML PATH('')), 1, 2, '') AS TacGia
+		, (case when s.LoaiSach =0 then N'Sách giấy' else N'Sách điện tử' end) as N'Loại sách'
+	, stuff(
+		(select (case when c.TenChuDe is not null  then ', ' + c.TenChuDe  else ' ' end)
+		from ChuDe as c
+		 join ChuDeCuaSach as cds on cds.MaChuDe= c.MaChuDe
+		where cds.MaSach = s.MaSach
+		FOR XML PATH('')), 1, 2, '') AS ChuDe
+		
+FROM Sach s             
+JOIN NhaXuatBan nxb ON nxb.MaNhaXuatBan = s.MaNhaXuatBan
+GROUP BY s.MaSach, s.TieuDe, s.MaNhaXuatBan, nxb.TenNhaXuatBan,s.NamXuatBan,s.LoaiSach
+ORDER BY s.MaSach;
+
+ 
